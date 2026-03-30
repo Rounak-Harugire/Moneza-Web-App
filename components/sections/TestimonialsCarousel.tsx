@@ -38,7 +38,7 @@ export default function TestimonialsCarousel() {
               className="absolute inset-0 flex flex-col items-center justify-center p-6 md:p-10 glass rounded-3xl"
             >
               <p className="text-xl md:text-2xl text-gray-300 italic mb-8">
-                &quot;{testimonials[currentIndex].quote}&quot;
+                 {`"${testimonials[currentIndex].quote}"`}
               </p>
               <div className="flex items-center gap-4">
                 <div className="w-12 h-12 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg">
