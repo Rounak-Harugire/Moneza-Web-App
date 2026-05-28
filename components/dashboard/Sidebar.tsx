@@ -2,10 +2,13 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation'; // Added useRouter
 import { motion, AnimatePresence } from 'framer-motion';
-import { User, BookOpen, Settings, LogOut, Zap, Menu, X } from 'lucide-react';
+import { User, BookOpen, Settings, LogOut, Zap, Menu, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api'; // Added api import
+import { useAuthStore } from '@/store/authStore'; // Added store import
+import toast from 'react-hot-toast';
 
 const navItems = [
   { label: 'Profile', href: '/dashboard', icon: User },
@@ -15,7 +18,31 @@ const navItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter(); // Initialize router
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isLoggingOut, setIsLoggingOut] = useState(false); // Track logout state
+  const clearUser = useAuthStore((state) => state.setUser); // Get state cleaner
+
+  const handleLogout = async (e: React.MouseEvent) => {
+    e.preventDefault(); // Stop standard routing link action
+    if (isLoggingOut) return;
+
+    setIsLoggingOut(true);
+    try {
+      // 1. Tell Render backend to remove the HTTP-Only cookie [cite: 74, 101]
+      await api.post('/auth/logout'); 
+    } catch (error) {
+      console.error("Backend logout failed, clearing local state anyway:", error);
+    } finally {
+      // 2. Clear Zustand memory state [cite: 55]
+      clearUser(null); 
+      
+      toast.success('Logged out successfully');
+      
+      // 3. Clean window redirect to reset all route contexts safely
+      window.location.href = '/login';
+    }
+  };
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -46,14 +73,20 @@ export default function Sidebar() {
         })}
       </nav>
 
+      {/* FIXED LOGOUT ACTION AREA */}
       <div className="px-3 pb-6">
-        <Link
-          href="/login"
-          className="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all group"
+        <button
+          onClick={handleLogout}
+          disabled={isLoggingOut}
+          className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-all group disabled:opacity-50"
         >
-          <LogOut className="w-5 h-5 transition-colors group-hover:text-red-400" />
-          Logout
-        </Link>
+          {isLoggingOut ? (
+            <Loader2 className="w-5 h-5 animate-spin text-red-400" />
+          ) : (
+            <LogOut className="w-5 h-5 transition-colors group-hover:text-red-400" />
+          )}
+          {isLoggingOut ? 'Logging out...' : 'Logout'}
+        </button>
       </div>
     </div>
   );
