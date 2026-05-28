@@ -23,13 +23,28 @@ export default function LoginPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
+      // 1. Submit credentials to Render backend
       const res = await api.post('/auth/login', { email, password });
-      toast.success('Logged in successfully!');
-      setUser(res.data.data);
-      router.push('/dashboard');
-      router.refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Invalid credentials');
+
+      if (res.data?.success) {
+        toast.success('Logged in successfully!');
+
+        // 2. Safely populate Zustand client cache state 
+        if (res.data?.data) {
+          setUser(res.data.data);
+        }
+
+        // 3. Clear window location swap ensures cross-domain HTTP cookies load seamlessly
+        window.location.href = '/dashboard';
+      } else {
+        toast.error(res.data?.message || 'Invalid credentials');
+      }
+    } catch (error: any) {
+      console.error("Login component caught an execution error:", error);
+
+      // Extract the parsed message string passed by your Axios interceptor reject block
+      const errorMessage = error instanceof Error ? error.message : 'Invalid credentials';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }
