@@ -2,35 +2,59 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { BookOpen, Award, UserCircle, Edit } from 'lucide-react';
+import { BookOpen, Award, UserCircle, Edit, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/store/authStore';
 
 export default function DashboardPage() {
-  const { user } = useAuthStore();
+  const { user, setUser } = useAuthStore();
+  const router = useRouter();
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [statsData, setStatsData] = useState({
     enrolledCourses: 0,
     certificates: 0,
-    profileCompletion: user?.profileCompletion || 70
+    profileCompletion: 70
   });
 
   useEffect(() => {
-    api.get('/dashboard/stats').then(res => {
-      if (res.data?.success && res.data.data.enrolledCourses > 0) {
-        setStatsData(res.data.data);
-      } else {
-        const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
-        const local = JSON.parse(localStorage.getItem(userKey) || "[]");
-        setStatsData(prev => ({ ...prev, enrolledCourses: local.length }));
+    const verifyUserAndStats = async () => {
+      try {
+        // 1. Explicitly verify cross-origin session with backend
+        const userProfileRes = await api.get('/users/profile');
+        if (userProfileRes.data?.success) {
+          const fetchedUser = userProfileRes.data.data;
+          setUser(fetchedUser); // Keep Zustand active
+          
+          // Update profile completion metrics dynamically
+          setStatsData(prev => ({
+            ...prev,
+            profileCompletion: fetchedUser?.profileCompletion || 70
+          }));
+        }
+
+        // 2. Load dashboard stats
+        const statsRes = await api.get('/dashboard/stats');
+        if (statsRes.data?.success && statsRes.data.data.enrolledCourses > 0) {
+          setStatsData(prev => ({ ...prev, ...statsRes.data.data }));
+        } else {
+          const userKey = userProfileRes.data.data?.email ? `myCourses_${userProfileRes.data.data.email}` : "myCourses";
+          const local = JSON.parse(localStorage.getItem(userKey) || "[]");
+          setStatsData(prev => ({ ...prev, enrolledCourses: local.length }));
+        }
+        
+        setIsCheckingAuth(false);
+      } catch (error) {
+        console.error("Session verification failed:", error);
+        // If cookie validation fails on Render, force user back to login safely
+        window.location.href = '/login';
       }
-    }).catch(() => {
-      const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
-      const local = JSON.parse(localStorage.getItem(userKey) || "[]");
-      setStatsData(prev => ({ ...prev, enrolledCourses: local.length }));
-    });
-  }, [user?.email]);
+    };
+
+    verifyUserAndStats();
+  }, [setUser]);
 
   const stats = [
     { label: 'Courses Enrolled', value: statsData.enrolledCourses.toString(), icon: <BookOpen className="w-6 h-6 text-primary-light" /> },
@@ -46,6 +70,14 @@ export default function DashboardPage() {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0 },
   };
+
+  if (isCheckingAuth) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-transparent">
+        <Loader2 className="w-8 h-8 animate-spin text-primary-light" />
+      </div>
+    );
+  }
 
   return (
     <div className="pt-16 md:pt-0 min-h-screen">
@@ -89,12 +121,14 @@ export default function DashboardPage() {
             <p className="text-gray-400 max-w-md">
               You haven&apos;t enrolled in any courses yet. Explore our catalog and start your learning journey!
             </p>
-            <Link href="/courses">
-              <Button size="lg" className="mt-2">Explore Courses</Button>
-            </Link>
-            <Link href="/dashboard/my-courses">
-              <Button variant="outline" size="lg" className="mt-2 ml-2">View My Courses</Button>
-            </Link>
+            <div className="flex flex-wrap items-center justify-center gap-2 mt-2">
+              <Link href="/courses">
+                <Button size="lg">Explore Courses</Button>
+              </Link>
+              <Link href="/dashboard/my-courses">
+                <Button variant="outline" size="lg">View My Courses</Button>
+              </Link>
+            </div>
           </div>
         </motion.div>
 
@@ -103,7 +137,7 @@ export default function DashboardPage() {
           <h2 className="text-xl font-bold text-white mb-6">Profile Details</h2>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6">
             <div className="w-24 h-24 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white text-3xl font-bold shrink-0">
-              L
+              {user?.fullName ? user.fullName.charAt(0).toUpperCase() : 'L'}
             </div>
             <div className="text-center sm:text-left flex-1">
               <h3 className="text-xl font-bold text-white">{user?.fullName || 'Learner'}</h3>
