@@ -21,7 +21,10 @@
     "zustand": "^5.0.12"
   },
   "devDependencies": {
-    "@types/node": "^20",
+    "@types/bcrypt": "^6.0.0",
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^20.19.41",
     "@types/react": "^18",
     "@types/react-dom": "^18",
     "eslint": "^8",
