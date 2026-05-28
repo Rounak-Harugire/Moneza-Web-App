@@ -12,8 +12,8 @@ const generateAndSetToken = (res, userId) => {
     });
     res.cookie('token', token, {
         httpOnly: true,
-        secure: env_1.ENV.NODE_ENV === 'production',
-        sameSite: 'strict',
+        secure: true, // Required for sameSite: 'none'
+        sameSite: 'none', // Crucial for Vercel -> Render communication
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
     return token;
@@ -22,7 +22,9 @@ exports.generateAndSetToken = generateAndSetToken;
 const clearToken = (res) => {
     res.cookie('token', '', {
         httpOnly: true,
-        expires: new Date(0)
+        secure: true,
+        sameSite: 'none',
+        expires: new Date(0),
     });
 };
 exports.clearToken = clearToken;
