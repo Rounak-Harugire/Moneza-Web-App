@@ -1,15 +1,41 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { BookOpen, Award, UserCircle, Edit } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
 
 export default function DashboardPage() {
+  const { user } = useAuthStore();
+  const [statsData, setStatsData] = useState({
+    enrolledCourses: 0,
+    certificates: 0,
+    profileCompletion: user?.profileCompletion || 70
+  });
+
+  useEffect(() => {
+    api.get('/dashboard/stats').then(res => {
+      if (res.data?.success && res.data.data.enrolledCourses > 0) {
+        setStatsData(res.data.data);
+      } else {
+        const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
+        const local = JSON.parse(localStorage.getItem(userKey) || "[]");
+        setStatsData(prev => ({ ...prev, enrolledCourses: local.length }));
+      }
+    }).catch(() => {
+      const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
+      const local = JSON.parse(localStorage.getItem(userKey) || "[]");
+      setStatsData(prev => ({ ...prev, enrolledCourses: local.length }));
+    });
+  }, []);
+
   const stats = [
-    { label: 'Courses Enrolled', value: '0', icon: <BookOpen className="w-6 h-6 text-primary-light" /> },
-    { label: 'Certificates', value: '0', icon: <Award className="w-6 h-6 text-yellow-400" /> },
-    { label: 'Profile Complete', value: '70%', icon: <UserCircle className="w-6 h-6 text-accent" /> },
+    { label: 'Courses Enrolled', value: statsData.enrolledCourses.toString(), icon: <BookOpen className="w-6 h-6 text-primary-light" /> },
+    { label: 'Certificates', value: statsData.certificates.toString(), icon: <Award className="w-6 h-6 text-yellow-400" /> },
+    { label: 'Profile Complete', value: `${statsData.profileCompletion}%`, icon: <UserCircle className="w-6 h-6 text-accent" /> },
   ];
 
   const container = {
@@ -28,7 +54,7 @@ export default function DashboardPage() {
         {/* Welcome Banner */}
         <motion.div variants={item} className="glass rounded-3xl p-8 border border-primary/20">
           <h1 className="text-3xl md:text-4xl font-bold">
-            Welcome back, <span className="gradient-text">Learner 👋</span>
+            Welcome back, <span className="gradient-text">{user?.fullName || 'Learner'} 👋</span>
           </h1>
           <p className="text-gray-400 mt-2">Here&apos;s what&apos;s happening with your account today.</p>
         </motion.div>
@@ -66,6 +92,9 @@ export default function DashboardPage() {
             <Link href="/courses">
               <Button size="lg" className="mt-2">Explore Courses</Button>
             </Link>
+            <Link href="/dashboard/my-courses">
+              <Button variant="outline" size="lg" className="mt-2 ml-2">View My Courses</Button>
+            </Link>
           </div>
         </motion.div>
 
@@ -77,22 +106,24 @@ export default function DashboardPage() {
               L
             </div>
             <div className="text-center sm:text-left flex-1">
-              <h3 className="text-xl font-bold text-white">Learner</h3>
-              <p className="text-gray-400 mt-1">learner@example.com</p>
+              <h3 className="text-xl font-bold text-white">{user?.fullName || 'Learner'}</h3>
+              <p className="text-gray-400 mt-1">{user?.email || 'user@example.com'}</p>
               <div className="mt-4 w-full max-w-xs mx-auto sm:mx-0">
                 <div className="flex justify-between text-xs text-gray-400 mb-1">
                   <span>Profile Completion</span>
-                  <span>70%</span>
+                  <span>{statsData.profileCompletion}%</span>
                 </div>
                 <div className="h-2 bg-surface-border rounded-full overflow-hidden">
-                  <div className="h-full w-[70%] bg-gradient-to-r from-primary to-accent rounded-full" />
+                  <div className="h-full bg-gradient-to-r from-primary to-accent rounded-full transition-all" style={{ width: `${statsData.profileCompletion}%` }} />
                 </div>
               </div>
             </div>
             <div className="shrink-0">
-              <Button variant="outline" className="flex items-center gap-2">
-                <Edit className="w-4 h-4" /> Edit Profile
-              </Button>
+              <Link href="/dashboard/settings">
+                <Button variant="outline" className="flex items-center gap-2">
+                  <Edit className="w-4 h-4" /> Edit Profile
+                </Button>
+              </Link>
             </div>
           </div>
         </motion.div>

@@ -8,13 +8,27 @@ import { Zap, Menu, X, ChevronDown } from 'lucide-react';
 import { navLinks } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
 
 export default function Navbar() {
   const [isScrolled, setIsScrolled] = React.useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
   const [activeDropdown, setActiveDropdown] = React.useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const { isAuthenticated, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await api.post('/auth/logout');
+    } catch(e) {}
+    logout();
+    router.push('/');
+    setIsLoggingOut(false);
+  };
 
   React.useEffect(() => {
     const handleScroll = () => {
@@ -74,17 +88,19 @@ export default function Navbar() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
-                      className="absolute top-full left-0 mt-2 w-64 glass rounded-xl overflow-hidden py-2"
+                      className="absolute top-full left-0 w-64 pt-2"
                     >
-                      {link.dropdown.map((item) => (
-                        <Link
-                          key={item.name}
-                          href={item.href}
-                          className="block px-4 py-2 flex items-center gap-x-2 text-sm text-gray-300 hover:text-white hover:bg-surface-border/50 transition-colors"
-                        >
-                           <span className="truncate">{item.name}</span>
-                        </Link>
-                      ))}
+                      <div className="glass rounded-xl overflow-hidden py-2 border border-surface-border shadow-xl">
+                        {link.dropdown.map((item) => (
+                          <Link
+                            key={item.name}
+                            href={item.href}
+                            className="block px-4 py-2 flex items-center gap-x-2 text-sm text-gray-300 hover:text-white hover:bg-surface-border/50 transition-colors"
+                          >
+                             <span className="truncate">{item.name}</span>
+                          </Link>
+                        ))}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -93,12 +109,25 @@ export default function Navbar() {
           </nav>
 
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" className="hidden lg:inline-flex" onClick={() => router.push('/login')}>
-              Login
-            </Button>
-            <Button onClick={() => router.push('/register')}>
-              Get Started
-            </Button>
+            {isAuthenticated ? (
+              <>
+                <Button variant="ghost" className="hidden lg:inline-flex" onClick={handleLogout} disabled={isLoggingOut}>
+                  Logout
+                </Button>
+                <Button onClick={() => router.push('/dashboard')}>
+                  Dashboard
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" className="hidden lg:inline-flex" onClick={() => router.push('/login')}>
+                  Login
+                </Button>
+                <Button onClick={() => router.push('/register')}>
+                  Get Started
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Toggle */}
@@ -147,12 +176,25 @@ export default function Navbar() {
                 </div>
               ))}
               <div className="flex flex-col gap-3 mt-4 pt-4 border-t border-surface-border/50">
-                <Button variant="outline" className="w-full justify-center" onClick={() => { setIsMobileMenuOpen(false); router.push('/login'); }}>
-                  Login
-                </Button>
-                <Button className="w-full justify-center" onClick={() => { setIsMobileMenuOpen(false); router.push('/register'); }}>
-                  Get Started
-                </Button>
+                {isAuthenticated ? (
+                  <>
+                    <Button variant="outline" className="w-full justify-center" onClick={() => { setIsMobileMenuOpen(false); handleLogout(); }}>
+                      Logout
+                    </Button>
+                    <Button className="w-full justify-center" onClick={() => { setIsMobileMenuOpen(false); router.push('/dashboard'); }}>
+                      Dashboard
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" className="w-full justify-center" onClick={() => { setIsMobileMenuOpen(false); router.push('/login'); }}>
+                      Login
+                    </Button>
+                    <Button className="w-full justify-center" onClick={() => { setIsMobileMenuOpen(false); router.push('/register'); }}>
+                      Get Started
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </motion.div>

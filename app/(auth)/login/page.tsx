@@ -4,13 +4,36 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, Zap } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, Zap, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
+import toast from 'react-hot-toast';
 
 export default function LoginPage() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const setUser = useAuthStore(state => state.setUser);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    try {
+      const res = await api.post('/auth/login', { email, password });
+      toast.success('Logged in successfully!');
+      setUser(res.data.data);
+      router.push('/dashboard');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Invalid credentials');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <motion.div
@@ -28,11 +51,13 @@ export default function LoginPage() {
       <h1 className="text-2xl font-bold text-white text-center mb-1">Welcome back</h1>
       <p className="text-gray-400 text-sm text-center mb-8">Sign in to continue learning</p>
 
-      <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); router.push('/dashboard'); }}>
+      <form className="space-y-2" onSubmit={handleLogin}>
         <Input
           label="Email Address"
           type="email"
           leftIcon={<Mail className="w-4 h-4" />}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
         <div className="relative">
@@ -40,6 +65,8 @@ export default function LoginPage() {
             label="Password"
             type={showPassword ? 'text' : 'password'}
             leftIcon={<Lock className="w-4 h-4" />}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
           />
           <button
@@ -57,8 +84,8 @@ export default function LoginPage() {
           </Link>
         </div>
 
-        <Button type="submit" className="w-full justify-center" size="lg">
-          Login
+        <Button type="submit" className="w-full justify-center" size="lg" disabled={isLoading}>
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Login'}
         </Button>
       </form>
 

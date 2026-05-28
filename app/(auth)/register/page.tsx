@@ -4,15 +4,44 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
-import { Mail, Lock, Eye, EyeOff, User, Zap } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Zap, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
+import { api } from '@/lib/api';
+import { useAuthStore } from '@/store/authStore';
+import toast from 'react-hot-toast';
 
 export default function RegisterPage() {
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [agreed, setAgreed] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
+  const setUser = useAuthStore(state => state.setUser);
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password !== confirmPassword) {
+      return toast.error("Passwords do not match");
+    }
+    if (!agreed) return;
+
+    setIsLoading(true);
+    try {
+      const res = await api.post('/auth/register', { fullName, email, password });
+      toast.success('Account created successfully!');
+      setUser(res.data.data);
+      router.push('/dashboard');
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Registration failed');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const strengthLevel = password.length === 0 ? 0 : password.length < 6 ? 1 : password.length < 10 ? 2 : 3;
   const strengthColors = ['bg-transparent', 'bg-red-500', 'bg-yellow-500', 'bg-green-500'];
@@ -33,17 +62,21 @@ export default function RegisterPage() {
       <h1 className="text-2xl font-bold text-white text-center mb-1">Create an account</h1>
       <p className="text-gray-400 text-sm text-center mb-8">Join 1,456+ early learners</p>
 
-      <form className="space-y-2" onSubmit={(e) => { e.preventDefault(); if (agreed) router.push('/dashboard'); }}>
+      <form className="space-y-2" onSubmit={handleRegister}>
         <Input
           label="Full Name"
           type="text"
           leftIcon={<User className="w-4 h-4" />}
+          value={fullName}
+          onChange={(e) => setFullName(e.target.value)}
           required
         />
         <Input
           label="Email Address"
           type="email"
           leftIcon={<Mail className="w-4 h-4" />}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
           required
         />
         <div className="relative">
@@ -85,6 +118,8 @@ export default function RegisterPage() {
           label="Confirm Password"
           type="password"
           leftIcon={<Lock className="w-4 h-4" />}
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           required
         />
 
@@ -108,9 +143,9 @@ export default function RegisterPage() {
           type="submit"
           className="w-full justify-center mt-2"
           size="lg"
-          disabled={!agreed}
+          disabled={!agreed || isLoading}
         >
-          Create Account
+          {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create Account'}
         </Button>
       </form>
 

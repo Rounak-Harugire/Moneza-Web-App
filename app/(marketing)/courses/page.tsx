@@ -1,13 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { courses } from '@/lib/constants';
-import CourseCard from '@/components/courses/CourseCard';
+import CourseCard, { CourseData } from '@/components/courses/CourseCard';
+import { courses as staticCourses } from '@/lib/constants';
 import { Button } from '@/components/ui/Button';
+import { api } from '@/lib/api';
+import toast from 'react-hot-toast';
+import { Loader2 } from 'lucide-react';
 
 export default function CoursesPage() {
+  const [courses, setCourses] = useState<CourseData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState('All');
+
+  useEffect(() => {
+    api.get('/courses')
+      .then(res => {
+        if (res.data?.success && res.data.data.length > 0) {
+          setCourses(res.data.data);
+        } else {
+          setCourses(staticCourses);
+        }
+      })
+      .catch(() => setCourses(staticCourses))
+      .finally(() => setIsLoading(false));
+  }, []);
+
+  useEffect(() => {
+    const handleHashCategory = () => {
+      const hash = window.location.hash;
+      const hashToCategory: Record<string, string> = {
+        '#ai': 'Tech',
+        '#finance': 'Finance',
+        '#language': 'Language',
+        '#wellness': 'Wellness',
+        '#learning': 'Learning',
+        '#productivity': 'Productivity',
+      };
+      
+      if (hash && hashToCategory[hash]) {
+        setActiveFilter(hashToCategory[hash]);
+      } else if (!hash) {
+        setActiveFilter('All');
+      }
+    };
+
+    handleHashCategory();
+    window.addEventListener('hashchange', handleHashCategory);
+    return () => window.removeEventListener('hashchange', handleHashCategory);
+  }, []);
+
   // Extract unique categories from array
   const categoriesMap = new Set(courses.map(c => c.category));
   const categories = ['All', ...Array.from(categoriesMap)];
@@ -48,8 +91,13 @@ export default function CoursesPage() {
         </div>
 
         {/* Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {filteredCourses.map((course, idx) => (
+        {isLoading ? (
+          <div className="flex justify-center py-20">
+            <Loader2 className="w-8 h-8 text-primary animate-spin" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredCourses.map((course, idx) => (
             <motion.div
               key={course.title}
               id={course.title.toLowerCase().replace(/\s+/g, '-')}
@@ -61,24 +109,16 @@ export default function CoursesPage() {
               <div className="flex-1">
                 <CourseCard course={course} />
               </div>
-              
-              <div className="mt-4 pt-4 border-t border-surface-border glass rounded-2xl p-4 flex items-center justify-between">
-                <span className="text-xs font-semibold text-accent uppercase tracking-wider bg-accent/10 px-2 py-1 rounded">
-                  Coming Soon
-                </span>
-                <Button size="sm" variant="ghost" onClick={() => alert("Mock notification set!")}>
-                  🔔 Notify Me
-                </Button>
-              </div>
             </motion.div>
           ))}
           
-          {filteredCourses.length === 0 && (
-            <div className="col-span-full py-12 text-center text-gray-500">
-              No courses found for this category.
-            </div>
-          )}
-        </div>
+            {filteredCourses.length === 0 && (
+              <div className="col-span-full py-12 text-center text-gray-500">
+                No courses found for this category.
+              </div>
+            )}
+          </div>
+        )}
 
       </div>
     </div>
