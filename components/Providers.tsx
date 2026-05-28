@@ -15,7 +15,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         if (res.data?.success) {
           setUser(res.data.data);
         }
-      } catch (error) {
+      } catch {
         // Keep authenticated as false, user is not logged in.
         setUser(null);
       }

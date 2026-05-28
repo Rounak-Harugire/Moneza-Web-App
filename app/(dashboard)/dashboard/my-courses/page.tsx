@@ -8,8 +8,13 @@ import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
+interface Enrollment {
+  _id: string;
+  course: CourseData;
+}
+
 export default function MyCoursesPage() {
-  const [enrollments, setEnrollments] = useState<any[]>([]);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuthStore();
 
@@ -20,17 +25,17 @@ export default function MyCoursesPage() {
           setEnrollments(res.data.data);
         } else {
           const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
-          const local = JSON.parse(localStorage.getItem(userKey) || "[]");
-          setEnrollments(local.map((c: any) => ({ _id: c._id || Math.random().toString(), course: c })));
+          const local: CourseData[] = JSON.parse(localStorage.getItem(userKey) || "[]");
+          setEnrollments(local.map((c: CourseData) => ({ _id: c._id || Math.random().toString(), course: c })));
         }
       })
       .catch(() => {
         const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
-        const local = JSON.parse(localStorage.getItem(userKey) || "[]");
-        setEnrollments(local.map((c: any) => ({ _id: c._id || Math.random().toString(), course: c })));
+        const local: CourseData[] = JSON.parse(localStorage.getItem(userKey) || "[]");
+        setEnrollments(local.map((c: CourseData) => ({ _id: c._id || Math.random().toString(), course: c })));
       })
       .finally(() => setIsLoading(false));
-  }, []);
+  }, [user?.email]);
 
   const handleUnenroll = async (courseId: string) => {
     if (!courseId) {
@@ -44,10 +49,10 @@ export default function MyCoursesPage() {
       await api.delete(`/courses/${courseId}/enroll`);
       setEnrollments(prev => prev.filter(e => (e.course._id || e.course.id) !== courseId));
       toast.success("Course removed successfully ❌");
-    } catch (err) {
+    } catch {
       const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
-      const courses = JSON.parse(localStorage.getItem(userKey) || "[]");
-      const updated = courses.filter((c: any) => (c._id || c.id) !== courseId);
+      const courses: CourseData[] = JSON.parse(localStorage.getItem(userKey) || "[]");
+      const updated = courses.filter((c: CourseData) => (c._id || c.id) !== courseId);
       localStorage.setItem(userKey, JSON.stringify(updated));
       setEnrollments(prev => prev.filter(e => (e.course._id || e.course.id) !== courseId));
       toast.success("Course removed successfully ❌");
@@ -70,7 +75,7 @@ export default function MyCoursesPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {enrollments.map((enr, i) => (
+            {enrollments.map((enr) => (
               <CourseCard key={enr._id} course={enr.course} isEnrolled onUnenroll={handleUnenroll} />
             ))}
           </div>

@@ -24,7 +24,7 @@ export default function Navbar() {
     setIsLoggingOut(true);
     try {
       await api.post('/auth/logout');
-    } catch(e) {}
+    } catch {}
     logout();
     router.push('/');
     setIsLoggingOut(false);

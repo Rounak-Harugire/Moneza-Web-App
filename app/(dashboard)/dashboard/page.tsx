@@ -30,7 +30,7 @@ export default function DashboardPage() {
       const local = JSON.parse(localStorage.getItem(userKey) || "[]");
       setStatsData(prev => ({ ...prev, enrolledCourses: local.length }));
     });
-  }, []);
+  }, [user?.email]);
 
   const stats = [
     { label: 'Courses Enrolled', value: statsData.enrolledCourses.toString(), icon: <BookOpen className="w-6 h-6 text-primary-light" /> },

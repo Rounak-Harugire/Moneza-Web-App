@@ -21,7 +21,12 @@ export default function SettingsPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      const payload: any = { fullName };
+      interface UpdateProfilePayload {
+        fullName: string;
+        password?: string;
+        email?: string;
+      }
+      const payload: UpdateProfilePayload = { fullName };
       if (password) payload.password = password;
       // We assume email updates might be allowed or ignored by your simple backend
       if (email !== user?.email) payload.email = email;

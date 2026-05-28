@@ -44,11 +44,11 @@ export default function CourseCard({ course, isEnrolled = false, onUnenroll }: {
       await api.post(`/courses/${course._id || course.id}/enroll`);
       toast.success('Enrolled Successfully ✅');
       router.push('/dashboard/my-courses');
-    } catch (error) {
+    } catch {
       // TEMP FALLBACK
       const userKey = user?.email ? `myCourses_${user.email}` : "myCourses";
       const enrolledCourses = JSON.parse(localStorage.getItem(userKey) || "[]");
-      const isAlreadyEnrolled = enrolledCourses.find((c: any) => c._id === (course._id || course.id));
+      const isAlreadyEnrolled = enrolledCourses.find((c: CourseData) => c._id === (course._id || course.id));
       if (!isAlreadyEnrolled) {
         enrolledCourses.push(course);
         localStorage.setItem(userKey, JSON.stringify(enrolledCourses));

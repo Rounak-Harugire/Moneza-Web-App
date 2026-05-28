@@ -4,9 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import CourseCard, { CourseData } from '@/components/courses/CourseCard';
 import { courses as staticCourses } from '@/lib/constants';
-import { Button } from '@/components/ui/Button';
 import { api } from '@/lib/api';
-import toast from 'react-hot-toast';
 import { Loader2 } from 'lucide-react';
 
 export default function CoursesPage() {
